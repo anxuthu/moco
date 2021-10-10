@@ -47,7 +47,25 @@ class MoCo(nn.Module):
         Momentum update of the key encoder
         """
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
-            param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
+            delta = param_q.data - param_k.data
+
+            # linear scaling
+            #delta *= 1.0 - self.m
+            #delta *= 1.0 - 0.999
+
+            # top-k
+            #topk = 0.001
+            #K = max(1, int(topk * delta.numel()))
+            #vals, indices = delta.view(-1).abs().topk(K)
+            #sign = delta.sign()
+            #delta.zero_().view(-1).scatter_(0, indices, vals).mul_(sign.view(-1))
+
+            # sign
+            val = delta.norm(2) / delta.numel()
+            delta.sign_().mul_(val)
+
+            # slow update
+            param_k.data += delta
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
