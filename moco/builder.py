@@ -41,31 +41,38 @@ class MoCo(nn.Module):
 
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
 
+        self.step = 0
+
     @torch.no_grad()
     def _momentum_update_key_encoder(self):
         """
         Momentum update of the key encoder
         """
-        for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
-            delta = param_q.data - param_k.data
+        self.period = 1
+        self.step += 1
 
-            # linear scaling
-            #delta *= 1.0 - self.m
-            #delta *= 1.0 - 0.999
+        if self.step % self.period == 0:
 
-            # top-k
-            #topk = 0.001
-            #K = max(1, int(topk * delta.numel()))
-            #vals, indices = delta.view(-1).abs().topk(K)
-            #sign = delta.sign()
-            #delta.zero_().view(-1).scatter_(0, indices, vals).mul_(sign.view(-1))
+            for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
+                delta = param_q.data - param_k.data
 
-            # sign
-            val = delta.norm(2) / delta.numel()
-            delta.sign_().mul_(val)
+                # linear scaling
+                #delta *= 1.0 - self.m
+                #delta *= 1.0 - 0.999
 
-            # slow update
-            param_k.data += delta
+                # top-k
+                #topk = 0.001
+                #K = max(1, int(topk * delta.numel()))
+                #vals, indices = delta.view(-1).abs().topk(K)
+                #sign = delta.sign()
+                #delta.zero_().view(-1).scatter_(0, indices, vals).mul_(sign.view(-1))
+
+                # sign
+                val = delta.norm(2) / delta.numel()
+                delta.sign_().mul_(val)
+
+                # slow update
+                param_k.data += delta
 
     @torch.no_grad()
     def _dequeue_and_enqueue(self, keys):
