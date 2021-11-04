@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH -N 1
+#SBATCH -p GPU-shared
+#SBATCH -t 0:55:00
+#SBATCH --gpus=v100-32:4
+
+#type 'man sbatch' for more information and options
+#this job will ask for 1 full v100-32 GPU node(8 V100 GPUs) for 5 hours
+#this job would potentially charge 40 GPU SUs
+
+cd ${Projects}/moco
+
+module purge
+module load cuda/11.1.1 anaconda3/2020.11
+conda create -n pt1.6 python=3.6 -y
+conda install -n pt1.6 pytorch==1.6.0 torchvision==0.7.0 cudatoolkit=10.2 -c pytorch -y
+conda activate pt1.6
+
+#echo commands to stdout
+#set -x
+
+python main_moco.py \
+  -a resnet50 \
+  --lr 0.015 \
+  --batch-size 128 \
+  --dist-url 'tcp://localhost:10001' --multiprocessing-distributed --world-size 1 --rank 0 \
+  --mlp --moco-t 0.2 --aug-plus --cos \
+  /ocean/datasets/community/imagenet | tee log-pre

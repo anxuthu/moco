@@ -266,7 +266,7 @@ def main_worker(gpu, ngpus_per_node, args):
         train(train_loader, model, criterion, optimizer, epoch, args)
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-                and args.rank % ngpus_per_node == 0):
+                and args.rank % ngpus_per_node == 0) and (epoch + 1) % 40 == 0:
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
